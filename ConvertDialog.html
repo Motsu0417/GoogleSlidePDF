@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdn.simplecss.org/simple-v1.css">
+  <style>
+    body {
+      max-width: 60rem;
+    }
+
+    thead tr th {
+      text-align: center;
+    }
+
+    th.headopt {
+      font-weight: bold;
+      font-size: x-small;
+    }
+
+    th span {
+      font-size: large;
+    }
+
+    td.checkbox {
+      text-align: center;
+      position: relative;
+    }
+
+    button.start {
+      width: 200px;
+    }
+
+    td {
+      font-size: 14px;
+    }
+
+    td.memo {
+      font-size: 13px;
+    }
+
+    div.startDiv {
+      text-align: center;
+    }
+
+    img {
+      top: 20%;
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      left: 40%;
+    }
+
+    svg#doneSVG {
+      top: 20%;
+      position: absolute;
+      left: 40%;
+      display: none;
+    }
+  </style>
+  <script>
+    const checkboxies = document.getElementsByName('checkbox');
+    const checkTd = document.getElementsByClassName("checkbox");
+    const exportFolderID = "<?=exportFolderID?>";
+    const url_LoadAnim = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhkV3VJDcgTnK-rKgvq0BiQV7Q52-ouX0kOufIrOmRhfc1raaiEG0zOjakHQPdlx6eYxUslw_9JkzodzJHmlsIVEu5UGk-44naRPYNzWuV89nrv-EIMuHzCtrJf6rABJ_dRjIMiOML2OgluTOhg9hhC2LPnfy5kG9lK7lBBRlCkPh2KAZinyYMhzPlr/s1600-rw/1-1-loading.gif"
+    const url_donePic = "https://thumb.ac-illust.com/8b/8b3258c6222b066402163e21595de9f6_t.jpeg";
+    const url_cautionPic = "https://free-icons.net/wp-content/uploads/2020/09/symbol018.png";
+    let convertSlideIds = [];
+    let convertSlideIndexs = [];
+    var convertCount = 0;
+
+    function allSelect() {
+        for (var i = 0; i < checkboxies.length; i++) {
+            checkboxies[i].checked = true;
+        }
+    }
+
+    function allUnselect() {
+        for (var i = 0; i < checkboxies.length; i++) {
+            checkboxies[i].checked = false;
+        }
+    }
+
+    function startConvert() {
+      document.getElementsByName("convertButton")[0].disabled = true;
+      document.getElementsByName("convertButton")[0].innerText = "変換中";
+
+      var importSlides = [];
+      for (var i = 0; i < checkboxies.length; i++) {
+        console.log(i + ":" + checkboxies[i].checked);
+        checkboxies[i].disabled = true;
+        if(checkboxies[i].checked){
+          convertSlideIds.push(checkboxies[i].id);
+          convertSlideIndexs.push(i);
+        }
+      }
+      
+      while(convertCount < 10 && convertSlideIds.length > 0){
+        var cnvIndex = convertSlideIndexs.shift();
+        var img = document.createElement("img");
+        img.src = url_LoadAnim;
+        checkTd[cnvIndex].appendChild(img);
+        google.script.run
+          .withSuccessHandler(successConvert)
+          .withFailureHandler(failureConvert)
+          .convertSlide(convertSlideIds.shift(),exportFolderID,cnvIndex);
+        convertCount++;
+      }
+    }
+
+    function successConvert(index){
+      convertCount--;
+      if(index >= 0){
+        checkTd[index].children[1].src = url_donePic;
+      } else{
+        checkTd[index].children[1].src = url_cautionPic
+      }
+      if(convertSlideIds.length > 0){
+        var cnvIndex = convertSlideIndexs.shift();
+        var img = document.createElement("img");
+        img.src = url_LoadAnim;
+        checkTd[cnvIndex].appendChild(img);
+        google.script.run
+          .withSuccessHandler(successConvert)
+          .withFailureHandler(failureConvert)
+          .convertSlide(convertSlideIds.shift(),exportFolderID,cnvIndex);
+        convertCount++;
+      }else if(convertCount == 0){
+        google.script.run.showEndCovert();
+        // google.script.host.close();
+        document.getElementsByName("convertButton")[0].innerText = "変換終了";
+      }
+    }
+    function failureConvert(){
+      console.log("failure")
+        checkTd[0].children[1].src = url_cautionPic;
+    }
+  </script>
+  <title>title</title>
+</head>
+
+<body>
+  <p>
+    入力フォルダ：<a href="https://drive.google.com/drive/u/0/folders/<?=importFolderID?>" target="_blank"
+      rel="noopener noreferrer">
+      <?= importFolderName ?>
+    </a>
+    <br>
+        出力フォルダ：<a href="https://drive.google.com/drive/u/0/folders/<?=exportFolderID?>" target="_blank"
+      rel="noopener noreferrer">
+      <?= exportFolderName ?>
+    </a>
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th class="headopt">
+          <span>出力対象</span><br>
+          <a onclick="allSelect()">すべて選択</a><br>
+          <a onclick="allUnselect()">選択解除</a>
+        </th>
+        <th>ファイル名</th>
+        <th>備考</th>
+      </tr>
+    </thead>
+    <? for(var i = 0;i < importFilesId.length;i++){ ?>
+    <tr>
+      <td class="checkbox">
+        <input type="checkbox" name="checkbox" id="<?= importFilesId[i]?>">
+      </td>
+      <td>
+        <?= importFilesName[i]?>
+      </td>
+      <td class="memo">
+        <?!= importFileNotes[i] ?>
+      </td>
+    </tr>
+    <? } ?>
+  </table>
+  <div class="startDiv">
+    <button name="convertButton" type="button" class="start" onclick="startConvert()">変換</button>
+  </div>
+
+</body>
+
+</html>
